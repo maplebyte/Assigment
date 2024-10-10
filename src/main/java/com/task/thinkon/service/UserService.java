@@ -4,8 +4,8 @@ import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
 import com.task.thinkon.dto.mapper.UserMapper;
 import com.task.thinkon.entities.User;
-import com.task.thinkon.exceptions.EntityNotFoundException;
 import com.task.thinkon.exceptions.EntityIsNullException;
+import com.task.thinkon.exceptions.EntityNotFoundException;
 import com.task.thinkon.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +62,6 @@ public class UserService {
     public void deleteUser(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
-
             log.info("User with ID: {} successfully deleted", id);
         } else {
             throw new EntityNotFoundException(id);
