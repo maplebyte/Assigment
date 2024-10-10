@@ -121,4 +121,21 @@ class UserControllerTest {
         mockMvc.perform(delete("/users/1"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateUser_ValidationErrors() throws Exception {
+        CreateUserDTO invalidUserDTO = new CreateUserDTO();
+        invalidUserDTO.setUsername("");
+        invalidUserDTO.setFirstName("John");
+        invalidUserDTO.setLastName("Doe");
+        invalidUserDTO.setEmail("invalid-email");
+        invalidUserDTO.setPhoneNumber("+123456789");
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidUserDTO)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.username").value("Username is mandatory"))
+                .andExpect(jsonPath("$.email").value("Email should be valid"));
+    }
 }
