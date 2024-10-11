@@ -2,6 +2,7 @@ import com.task.thinkon.TestDataUtil;
 import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
 import com.task.thinkon.entities.User;
+import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityIsNullException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
 import com.task.thinkon.repository.UserRepository;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,12 +43,25 @@ class UserServiceTest {
 
         when(userRepository.save(any(User.class))).thenReturn(user);
 
-        UserDTO result = userService.createUser(createUserDTO);
+        Long resultId = userService.createUser(createUserDTO);
 
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("john_doe", result.getUsername());
-        verify(userRepository, times(1)).save(any(User.class));  // Проверяем, что save вызван один раз
+        assertNotNull(resultId);
+        assertEquals(1L, resultId);
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void testCreateUser_EmailAlreadyExists() {
+        CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
+
+        when(userRepository.existsByEmail(createUserDTO.getEmail())).thenReturn(true);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> {
+            userService.createUser(createUserDTO);
+        });
+
+        verify(userRepository, times(1)).existsByEmail(createUserDTO.getEmail());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -69,7 +84,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("john_doe", result.get(0).getUsername());
-        verify(userRepository, times(1)).findAll();  // Проверяем, что findAll вызван один раз
+        verify(userRepository, times(1)).findAll();
     }
 
     @Test
@@ -83,7 +98,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("john_doe", result.getUsername());
-        verify(userRepository, times(1)).findById(1L);  // Проверяем, что findById вызван один раз
+        verify(userRepository, times(1)).findById(1L);
     }
 
     @Test
@@ -110,6 +125,25 @@ class UserServiceTest {
         assertEquals("Johnny", result.getFirstName());
         verify(userRepository, times(1)).findById(1L);
         verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void testUpdateUser_EmailAlreadyExists() {
+        User existingUser = TestDataUtil.createUser();
+        CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
+
+        updateUserDTO.setEmail("existing_email@example.com");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.existsByEmail(updateUserDTO.getEmail())).thenReturn(true);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> {
+            userService.updateUser(1L, updateUserDTO);
+        });
+
+        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).existsByEmail(updateUserDTO.getEmail());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.task.thinkon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
+import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
 import com.task.thinkon.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -17,8 +18,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,18 +41,33 @@ class UserControllerTest {
     @Test
     void testCreateUser_Success() throws Exception {
         CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
-        UserDTO createdUser = new UserDTO();
-        createdUser.setId(1L);
-        createdUser.setUsername("john_doe");
+        Long createdUserId = 1L;
 
-        Mockito.when(userService.createUser(Mockito.any(CreateUserDTO.class))).thenReturn(createdUser);
+        Mockito.when(userService.createUser(Mockito.any(CreateUserDTO.class))).thenReturn(createdUserId);
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createUserDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.username").value("john_doe"));
+                .andExpect(jsonPath("$.status").value(201))
+                .andExpect(jsonPath("$.message").value("User created successfully"))
+                .andExpect(jsonPath("$.data").value(1L));
+    }
+
+    @Test
+    void testCreateUser_EmailAlreadyExists() throws Exception {
+        CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
+
+        String existingEmail = "existingEmail";
+        Mockito.when(userService.createUser(Mockito.any(CreateUserDTO.class)))
+                .thenThrow(new EmailAlreadyExistsException(existingEmail));
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createUserDTO)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Conflict: Email " + existingEmail + " is already in use"));
     }
 
     @Test
@@ -62,9 +82,12 @@ class UserControllerTest {
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].username").value("john_doe"));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("Users retrieved successfully"))
+                .andExpect(jsonPath("$.data[0].id").value(1L))
+                .andExpect(jsonPath("$.data[0].username").value("john_doe"));
     }
+
 
     @Test
     void testGetUserById_Success() throws Exception {
@@ -76,16 +99,21 @@ class UserControllerTest {
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.username").value("john_doe"));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("User retrieved successfully"))
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.username").value("john_doe"));
     }
+
 
     @Test
     void testGetUserById_NotFound() throws Exception {
         Mockito.when(userService.getUserById(1L)).thenThrow(new EntityNotFoundException(1L));
 
         mockMvc.perform(get("/users/1"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Entity not found: User with id 1 not found"));
     }
 
     @Test
@@ -102,8 +130,26 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateUserDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.username").value("john_doe"));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.message").value("User updated successfully"))
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.username").value("john_doe"));
+    }
+
+    @Test
+    void testUpdateUser_EmailAlreadyExists() throws Exception {
+        CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
+
+        String existingEmail = "existingEmail";
+        Mockito.when(userService.updateUser(Mockito.eq(1L), Mockito.any(CreateUserDTO.class)))
+                .thenThrow(new EmailAlreadyExistsException(existingEmail));
+
+        mockMvc.perform(put("/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateUserDTO)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Conflict: Email " + existingEmail + " is already in use"));
     }
 
     @Test
@@ -111,7 +157,10 @@ class UserControllerTest {
         Mockito.doNothing().when(userService).deleteUser(1L);
 
         mockMvc.perform(delete("/users/1"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andExpect(jsonPath("$.status").value(204))
+                .andExpect(jsonPath("$.message").value("User deleted successfully"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -119,7 +168,9 @@ class UserControllerTest {
         Mockito.doThrow(new EntityNotFoundException(1L)).when(userService).deleteUser(1L);
 
         mockMvc.perform(delete("/users/1"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Entity not found: User with id 1 not found"));
     }
 
     @Test
@@ -135,7 +186,9 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidUserDTO)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.username").value("Username is mandatory"))
-                .andExpect(jsonPath("$.email").value("Email should be valid"));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.data.username").value("Username is mandatory"))
+                .andExpect(jsonPath("$.data.email").value("Email should be valid"));
     }
 }
