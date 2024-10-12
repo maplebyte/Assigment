@@ -110,13 +110,9 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
 
 ### 5. Delete a user
 - **URL:** `DELETE /users/{id}`
-- **Response Example:**
-    ```json
-    {
-      "status": 204,
-      "message": "User deleted successfully"
-    }
-    ```
+- **Response:**
+    - **Status:** `204 No Content`
+    - **Description:** No content is returned in the body of the response when the user is successfully deleted.
 
 ## Technologies Used
 

@@ -157,10 +157,7 @@ class UserControllerTest {
         Mockito.doNothing().when(userService).deleteUser(1L);
 
         mockMvc.perform(delete("/users/1"))
-                .andExpect(status().isNoContent())
-                .andExpect(jsonPath("$.status").value(204))
-                .andExpect(jsonPath("$.message").value("User deleted successfully"))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(status().isNoContent());
     }
 
     @Test
