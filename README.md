@@ -33,10 +33,15 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
       "phoneNumber": "+123456789"
     }
     ```
-- **Response:**
-    - Status: `201 Created`
-    - Body: `{"status": 201, "message": "User created successfully", "data": <user_id>}`
-
+- **Response Example:**
+    ```json
+    {
+      "status": 201,
+      "message": "User created successfully",
+      "data": <user_id>
+    }
+    ```
+  
 ### 2. List all users
 - **URL:** `GET /users`
 - **Response Example:**
