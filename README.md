@@ -38,7 +38,7 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
     {
       "status": 201,
       "message": "User created successfully",
-      "data": <user_id>
+      "data": 1
     }
     ```
   
