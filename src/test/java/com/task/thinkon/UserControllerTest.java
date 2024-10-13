@@ -3,8 +3,8 @@ package com.task.thinkon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
-import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
+import com.task.thinkon.exceptions.UniqueConstraintViolationException;
 import com.task.thinkon.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -58,16 +59,15 @@ class UserControllerTest {
     void testCreateUser_EmailAlreadyExists() throws Exception {
         CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
 
-        String existingEmail = "existingEmail";
         Mockito.when(userService.createUser(Mockito.any(CreateUserDTO.class)))
-                .thenThrow(new EmailAlreadyExistsException(existingEmail));
+                .thenThrow(new UniqueConstraintViolationException(Map.of("email", "Email is already in use")));
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createUserDTO)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.message").value("Conflict: Email " + existingEmail + " is already in use"));
+                .andExpect(jsonPath("$.message").value("Conflict: Unique constraint violations: [email: Email is already in use] "));
     }
 
     @Test
@@ -140,16 +140,15 @@ class UserControllerTest {
     void testUpdateUser_EmailAlreadyExists() throws Exception {
         CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
 
-        String existingEmail = "existingEmail";
         Mockito.when(userService.updateUser(Mockito.eq(1L), Mockito.any(CreateUserDTO.class)))
-                .thenThrow(new EmailAlreadyExistsException(existingEmail));
+                .thenThrow(new UniqueConstraintViolationException(Map.of("email", "Email is already in use")));
 
         mockMvc.perform(put("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateUserDTO)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.message").value("Conflict: Email " + existingEmail + " is already in use"));
+                .andExpect(jsonPath("$.message").value("Conflict: Unique constraint violations: [email: Email is already in use] "));
     }
 
     @Test

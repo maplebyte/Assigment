@@ -2,9 +2,9 @@ import com.task.thinkon.TestDataUtil;
 import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
 import com.task.thinkon.entities.User;
-import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityIsNullException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
+import com.task.thinkon.exceptions.UniqueConstraintViolationException;
 import com.task.thinkon.repository.UserRepository;
 import com.task.thinkon.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -20,6 +20,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -51,24 +52,47 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUser_EmailAlreadyExists() {
-        CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
-
-        when(userRepository.existsByEmail(createUserDTO.getEmail())).thenReturn(true);
-
-        assertThrows(EmailAlreadyExistsException.class, () -> {
-            userService.createUser(createUserDTO);
-        });
-
-        verify(userRepository, times(1)).existsByEmail(createUserDTO.getEmail());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
     void testCreateUser_NullInput() {
         assertThrows(EntityIsNullException.class, () -> {
             userService.createUser(null);
         });
+    }
+
+    @Test
+    void testCreateUser_DuplicateFields() {
+        CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
+        createUserDTO.setEmail("duplicate@example.com");
+        createUserDTO.setUsername("duplicate_user");
+        createUserDTO.setPhoneNumber("+123456789");
+
+        User existingUser = TestDataUtil.createUser();
+        existingUser.setEmail("duplicate@example.com");
+        existingUser.setUsername("duplicate_user");
+        existingUser.setPhoneNumber("+123456789");
+
+        when(userRepository.findByEmailOrUsernameOrPhoneNumberAndIdNot(
+                createUserDTO.getEmail(),
+                createUserDTO.getUsername(),
+                createUserDTO.getPhoneNumber(),
+                null
+        )).thenReturn(List.of(existingUser));
+
+        UniqueConstraintViolationException exception = assertThrows(
+                UniqueConstraintViolationException.class,
+                () -> userService.createUser(createUserDTO)
+        );
+
+        assertTrue(exception.getErrors().containsKey("email"));
+        assertTrue(exception.getErrors().containsKey("username"));
+        assertTrue(exception.getErrors().containsKey("phoneNumber"));
+
+        verify(userRepository, times(1)).findByEmailOrUsernameOrPhoneNumberAndIdNot(
+                createUserDTO.getEmail(),
+                createUserDTO.getUsername(),
+                createUserDTO.getPhoneNumber(),
+                null
+        );
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -128,22 +152,48 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdateUser_EmailAlreadyExists() {
-        User existingUser = TestDataUtil.createUser();
+    void testUpdateUser_DuplicateFields() {
         CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
+        updateUserDTO.setEmail("duplicate@example.com");
+        updateUserDTO.setUsername("duplicate_user");
+        updateUserDTO.setPhoneNumber("+123456789");
 
-        updateUserDTO.setEmail("existing_email@example.com");
+        User existingUser = TestDataUtil.createUser();
+        existingUser.setId(1L);
+
+        User conflictingUser = TestDataUtil.createUser();
+        conflictingUser.setId(2L);
+        conflictingUser.setEmail("duplicate@example.com");
+        conflictingUser.setUsername("duplicate_user");
+        conflictingUser.setPhoneNumber("+123456789");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
-        when(userRepository.existsByEmail(updateUserDTO.getEmail())).thenReturn(true);
 
-        assertThrows(EmailAlreadyExistsException.class, () -> {
-            userService.updateUser(1L, updateUserDTO);
-        });
+        when(userRepository.findByEmailOrUsernameOrPhoneNumberAndIdNot(
+                updateUserDTO.getEmail(),
+                updateUserDTO.getUsername(),
+                updateUserDTO.getPhoneNumber(),
+                1L
+        )).thenReturn(List.of(conflictingUser));
+
+        UniqueConstraintViolationException exception = assertThrows(
+                UniqueConstraintViolationException.class,
+                () -> userService.updateUser(1L, updateUserDTO)
+        );
+
+        assertTrue(exception.getErrors().containsKey("email"));
+        assertTrue(exception.getErrors().containsKey("username"));
+        assertTrue(exception.getErrors().containsKey("phoneNumber"));
+
+        verify(userRepository, never()).save(any(User.class));
 
         verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).existsByEmail(updateUserDTO.getEmail());
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, times(1)).findByEmailOrUsernameOrPhoneNumberAndIdNot(
+                updateUserDTO.getEmail(),
+                updateUserDTO.getUsername(),
+                updateUserDTO.getPhoneNumber(),
+                1L
+        );
     }
 
     @Test

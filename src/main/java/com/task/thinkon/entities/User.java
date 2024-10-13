@@ -16,7 +16,9 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"email"})
+        @UniqueConstraint(columnNames = {"email"}),
+        @UniqueConstraint(columnNames = {"username"}),
+        @UniqueConstraint(columnNames = {"phoneNumber"})
 })
 @Getter
 @Setter
@@ -28,7 +30,7 @@ public class User {
     private Long id;
 
     @NotBlank(message = "Username is mandatory")
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String username;
 
     @NotBlank(message = "First name is mandatory")
@@ -46,6 +48,6 @@ public class User {
 
     @NotBlank(message = "Phone number is mandatory")
     @Pattern(regexp = "\\+?[0-9]+", message = "Phone number should be valid")
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String phoneNumber;
 }

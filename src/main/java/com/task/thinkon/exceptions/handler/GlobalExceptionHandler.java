@@ -1,9 +1,9 @@
 package com.task.thinkon.exceptions.handler;
 
 import com.task.thinkon.dto.ApiResponse;
-import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityIsNullException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
+import com.task.thinkon.exceptions.UniqueConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -29,8 +29,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Void>> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
+    @ExceptionHandler(UniqueConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUniqueConstraintViolationException(UniqueConstraintViolationException ex) {
         ApiResponse<Void> response = new ApiResponse<>(HttpStatus.CONFLICT.value(), "Conflict: " + ex.getMessage(), null);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }

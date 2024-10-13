@@ -3,11 +3,11 @@
 ## Overview
 
 This is a RESTful API for managing users, built using Java 17 and Spring Boot. It allows for the creation, retrieval, updating, and deletion of users. The service stores the following user information:
-- Username
+- Username (must be unique)
 - First Name
 - Last Name
-- Email (should be unique)
-- Phone Number
+- Email (must be unique)
+- Phone Number (must be unique)
 
 The application is designed with two database profiles: **PostgreSQL** and **H2**. PostgreSQL is used in production environments, while H2 is an in-memory database for testing purposes. PostgreSQL is configured as the default profile and integrated into the Docker Compose setup.
 
@@ -188,6 +188,7 @@ The application includes unit tests. To run the tests:
 ```bash
 ./mvnw test
 ```
+In addition to unit tests, I manually tested the application using Postman to verify that the API behaves as expected and that each endpoint correctly processes requests and handles errors.
 
 ###  Notes
 * Ensure Docker is installed for using the PostgreSQL profile.

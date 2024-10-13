@@ -4,15 +4,17 @@ import com.task.thinkon.dto.CreateUserDTO;
 import com.task.thinkon.dto.UserDTO;
 import com.task.thinkon.dto.mapper.UserMapper;
 import com.task.thinkon.entities.User;
-import com.task.thinkon.exceptions.EmailAlreadyExistsException;
 import com.task.thinkon.exceptions.EntityIsNullException;
 import com.task.thinkon.exceptions.EntityNotFoundException;
+import com.task.thinkon.exceptions.UniqueConstraintViolationException;
 import com.task.thinkon.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -33,9 +35,10 @@ public class UserService {
             throw new EntityIsNullException();
         }
 
-        if (userRepository.existsByEmail(createUserDTO.getEmail())) {
-            log.error("Email {} is already in use", createUserDTO.getEmail());
-            throw new EmailAlreadyExistsException(createUserDTO.getEmail());
+        Map<String, String> validationErrors = validateUniqueConstraints(createUserDTO, null);
+
+        if (!validationErrors.isEmpty()) {
+            throw new UniqueConstraintViolationException(validationErrors);
         }
 
         User user = UserMapper.toEntity(createUserDTO);
@@ -66,17 +69,17 @@ public class UserService {
             log.error("Provided entity is null");
             throw new EntityIsNullException();
         }
+
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User with ID: {} not found", id);
                     return new EntityNotFoundException(id);
                 });
 
-        String newEmail = createUserDTO.getEmail();
-        if (!existingUser.getEmail().equals(newEmail) &&
-                userRepository.existsByEmail(newEmail)) {
-            log.error("Email {} is already in use", newEmail);
-            throw new EmailAlreadyExistsException(newEmail);
+        Map<String, String> validationErrors = validateUniqueConstraints(createUserDTO, id);
+
+        if (!validationErrors.isEmpty()) {
+            throw new UniqueConstraintViolationException(validationErrors);
         }
 
         User updatedUser = UserMapper.updateEntityFromDTO(createUserDTO, existingUser);
@@ -93,5 +96,34 @@ public class UserService {
         } else {
             throw new EntityNotFoundException(id);
         }
+    }
+
+    private Map<String, String> validateUniqueConstraints(CreateUserDTO createUserDTO, Long userId) {
+        List<User> conflictingUsers = userRepository.findByEmailOrUsernameOrPhoneNumberAndIdNot(
+                createUserDTO.getEmail(),
+                createUserDTO.getUsername(),
+                createUserDTO.getPhoneNumber(),
+                userId);
+
+        Map<String, String> validationErrors = new HashMap<>();
+
+        for (User existingUser : conflictingUsers) {
+            if (!existingUser.getId().equals(userId) && existingUser.getEmail().equals(createUserDTO.getEmail())) {
+                log.error("Email {} is already in use", createUserDTO.getEmail());
+                validationErrors.put("email", "Email is already in use");
+            }
+
+            if (!existingUser.getId().equals(userId) && existingUser.getUsername().equals(createUserDTO.getUsername())) {
+                log.error("Username {} is already in use", createUserDTO.getUsername());
+                validationErrors.put("username", "Username is already in use");
+            }
+
+            if (!existingUser.getId().equals(userId) && existingUser.getPhoneNumber().equals(createUserDTO.getPhoneNumber())) {
+                log.error("Phone number {} is already in use", createUserDTO.getPhoneNumber());
+                validationErrors.put("phoneNumber", "Phone number is already in use");
+            }
+        }
+
+        return validationErrors;
     }
 }
