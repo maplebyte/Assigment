@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,7 +30,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public Long createUser(CreateUserDTO createUserDTO) {
+    public UUID createUser(CreateUserDTO createUserDTO) {
         if (Objects.isNull(createUserDTO)) {
             log.error("Provided entity is null");
             throw new EntityIsNullException();
@@ -43,7 +44,7 @@ public class UserService {
 
         User user = UserMapper.toEntity(createUserDTO);
         User savedUser = userRepository.save(user);
-        long savedUserId = savedUser.getId();
+        UUID savedUserId = savedUser.getId();
 
         log.info("User successfully created, ID: {} ", savedUserId);
         return savedUserId;
@@ -55,7 +56,7 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public UserDTO getUserById(Long id) {
+    public UserDTO getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("User with ID: {} not found", id);
@@ -64,7 +65,7 @@ public class UserService {
         return UserMapper.toDTO(user);
     }
 
-    public UserDTO updateUser(Long id, CreateUserDTO createUserDTO) {
+    public UserDTO updateUser(UUID id, CreateUserDTO createUserDTO) {
         if (Objects.isNull(createUserDTO)) {
             log.error("Provided entity is null");
             throw new EntityIsNullException();
@@ -89,7 +90,7 @@ public class UserService {
         return UserMapper.toDTO(updatedUser);
     }
 
-    public void deleteUser(Long id) {
+    public void deleteUser(UUID id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
             log.info("User with ID: {} successfully deleted", id);
@@ -98,7 +99,7 @@ public class UserService {
         }
     }
 
-    private Map<String, String> validateUniqueConstraints(CreateUserDTO createUserDTO, Long userId) {
+    private Map<String, String> validateUniqueConstraints(CreateUserDTO createUserDTO, UUID userId) {
         List<User> conflictingUsers = userRepository.findByEmailOrUsernameOrPhoneNumberAndIdNot(
                 createUserDTO.getEmail(),
                 createUserDTO.getUsername(),

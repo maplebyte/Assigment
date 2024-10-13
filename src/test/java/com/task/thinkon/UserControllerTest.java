@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,7 +43,7 @@ class UserControllerTest {
     @Test
     void testCreateUser_Success() throws Exception {
         CreateUserDTO createUserDTO = TestDataUtil.createUserDTO();
-        Long createdUserId = 1L;
+        UUID createdUserId = TestDataUtil.FIXED_UUID;
 
         Mockito.when(userService.createUser(Mockito.any(CreateUserDTO.class))).thenReturn(createdUserId);
 
@@ -74,7 +75,7 @@ class UserControllerTest {
     void testGetAllUsers_Success() throws Exception {
         List<UserDTO> userList = new ArrayList<>();
         UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+        userDTO.setId(TestDataUtil.FIXED_UUID);
         userDTO.setUsername("john_doe");
         userList.add(userDTO);
 
@@ -84,7 +85,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("Users retrieved successfully"))
-                .andExpect(jsonPath("$.data[0].id").value(1L))
+                .andExpect(jsonPath("$.data[0].id").value(TestDataUtil.FIXED_UUID))
                 .andExpect(jsonPath("$.data[0].username").value("john_doe"));
     }
 
@@ -92,10 +93,10 @@ class UserControllerTest {
     @Test
     void testGetUserById_Success() throws Exception {
         UserDTO userDTO = new UserDTO();
-        userDTO.setId(1L);
+        userDTO.setId(TestDataUtil.FIXED_UUID);
         userDTO.setUsername("john_doe");
 
-        Mockito.when(userService.getUserById(1L)).thenReturn(userDTO);
+        Mockito.when(userService.getUserById(TestDataUtil.FIXED_UUID)).thenReturn(userDTO);
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isOk())
@@ -108,7 +109,7 @@ class UserControllerTest {
 
     @Test
     void testGetUserById_NotFound() throws Exception {
-        Mockito.when(userService.getUserById(1L)).thenThrow(new EntityNotFoundException(1L));
+        Mockito.when(userService.getUserById(TestDataUtil.FIXED_UUID)).thenThrow(new EntityNotFoundException(TestDataUtil.FIXED_UUID));
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isNotFound())
@@ -121,10 +122,10 @@ class UserControllerTest {
         CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
 
         UserDTO updatedUserDTO = new UserDTO();
-        updatedUserDTO.setId(1L);
+        updatedUserDTO.setId(TestDataUtil.FIXED_UUID);
         updatedUserDTO.setUsername("john_doe");
 
-        Mockito.when(userService.updateUser(Mockito.eq(1L), Mockito.any(CreateUserDTO.class))).thenReturn(updatedUserDTO);
+        Mockito.when(userService.updateUser(Mockito.eq(TestDataUtil.FIXED_UUID), Mockito.any(CreateUserDTO.class))).thenReturn(updatedUserDTO);
 
         mockMvc.perform(put("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +133,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.message").value("User updated successfully"))
-                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.id").value(TestDataUtil.FIXED_UUID))
                 .andExpect(jsonPath("$.data.username").value("john_doe"));
     }
 
@@ -140,7 +141,7 @@ class UserControllerTest {
     void testUpdateUser_EmailAlreadyExists() throws Exception {
         CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
 
-        Mockito.when(userService.updateUser(Mockito.eq(1L), Mockito.any(CreateUserDTO.class)))
+        Mockito.when(userService.updateUser(Mockito.eq(TestDataUtil.FIXED_UUID), Mockito.any(CreateUserDTO.class)))
                 .thenThrow(new UniqueConstraintViolationException(Map.of("email", "Email is already in use")));
 
         mockMvc.perform(put("/users/1")
@@ -153,7 +154,7 @@ class UserControllerTest {
 
     @Test
     void testDeleteUser_Success() throws Exception {
-        Mockito.doNothing().when(userService).deleteUser(1L);
+        Mockito.doNothing().when(userService).deleteUser(TestDataUtil.FIXED_UUID);
 
         mockMvc.perform(delete("/users/1"))
                 .andExpect(status().isNoContent());
@@ -161,7 +162,7 @@ class UserControllerTest {
 
     @Test
     void testDeleteUser_NotFound() throws Exception {
-        Mockito.doThrow(new EntityNotFoundException(1L)).when(userService).deleteUser(1L);
+        Mockito.doThrow(new EntityNotFoundException(TestDataUtil.FIXED_UUID)).when(userService).deleteUser(TestDataUtil.FIXED_UUID);
 
         mockMvc.perform(delete("/users/1"))
                 .andExpect(status().isNotFound())

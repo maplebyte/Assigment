@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,10 +45,10 @@ class UserServiceTest {
 
         when(userRepository.save(any(User.class))).thenReturn(user);
 
-        Long resultId = userService.createUser(createUserDTO);
+        UUID resultId = userService.createUser(createUserDTO);
 
         assertNotNull(resultId);
-        assertEquals(1L, resultId);
+        assertEquals(TestDataUtil.FIXED_UUID, resultId);
         verify(userRepository, times(1)).save(any(User.class));
     }
 
@@ -115,24 +116,24 @@ class UserServiceTest {
     void testGetUserById_Success() {
         User user = TestDataUtil.createUser();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(TestDataUtil.FIXED_UUID)).thenReturn(Optional.of(user));
 
-        UserDTO result = userService.getUserById(1L);
+        UserDTO result = userService.getUserById(TestDataUtil.FIXED_UUID);
 
         assertNotNull(result);
-        assertEquals(1L, result.getId());
+        assertEquals(TestDataUtil.FIXED_UUID, result.getId());
         assertEquals("john_doe", result.getUsername());
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findById(TestDataUtil.FIXED_UUID);
     }
 
     @Test
     void testGetUserById_NotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+        when(userRepository.findById(TestDataUtil.FIXED_UUID)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> {
-            userService.getUserById(1L);
+            userService.getUserById(TestDataUtil.FIXED_UUID);
         });
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findById(TestDataUtil.FIXED_UUID);
     }
 
     @Test
@@ -140,14 +141,14 @@ class UserServiceTest {
         User existingUser = TestDataUtil.createUser();
         CreateUserDTO updateUserDTO = TestDataUtil.createUserDTO();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findById(TestDataUtil.FIXED_UUID)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenReturn(existingUser);
 
-        UserDTO result = userService.updateUser(1L, updateUserDTO);
+        UserDTO result = userService.updateUser(TestDataUtil.FIXED_UUID, updateUserDTO);
 
         assertNotNull(result);
         assertEquals("Johnny", result.getFirstName());
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findById(TestDataUtil.FIXED_UUID);
         verify(userRepository, times(1)).save(any(User.class));
     }
 
@@ -159,26 +160,26 @@ class UserServiceTest {
         updateUserDTO.setPhoneNumber("+123456789");
 
         User existingUser = TestDataUtil.createUser();
-        existingUser.setId(1L);
+        existingUser.setId(TestDataUtil.FIXED_UUID);
 
         User conflictingUser = TestDataUtil.createUser();
-        conflictingUser.setId(2L);
+        conflictingUser.setId(UUID.randomUUID());
         conflictingUser.setEmail("duplicate@example.com");
         conflictingUser.setUsername("duplicate_user");
         conflictingUser.setPhoneNumber("+123456789");
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findById(TestDataUtil.FIXED_UUID)).thenReturn(Optional.of(existingUser));
 
         when(userRepository.findByEmailOrUsernameOrPhoneNumberAndIdNot(
                 updateUserDTO.getEmail(),
                 updateUserDTO.getUsername(),
                 updateUserDTO.getPhoneNumber(),
-                1L
+                TestDataUtil.FIXED_UUID
         )).thenReturn(List.of(conflictingUser));
 
         UniqueConstraintViolationException exception = assertThrows(
                 UniqueConstraintViolationException.class,
-                () -> userService.updateUser(1L, updateUserDTO)
+                () -> userService.updateUser(TestDataUtil.FIXED_UUID, updateUserDTO)
         );
 
         assertTrue(exception.getErrors().containsKey("email"));
@@ -187,32 +188,32 @@ class UserServiceTest {
 
         verify(userRepository, never()).save(any(User.class));
 
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findById(TestDataUtil.FIXED_UUID);
         verify(userRepository, times(1)).findByEmailOrUsernameOrPhoneNumberAndIdNot(
                 updateUserDTO.getEmail(),
                 updateUserDTO.getUsername(),
                 updateUserDTO.getPhoneNumber(),
-                1L
+                TestDataUtil.FIXED_UUID
         );
     }
 
     @Test
     void testDeleteUser_Success() {
-        when(userRepository.existsById(1L)).thenReturn(true);
-        doNothing().when(userRepository).deleteById(1L);
+        when(userRepository.existsById(TestDataUtil.FIXED_UUID)).thenReturn(true);
+        doNothing().when(userRepository).deleteById(TestDataUtil.FIXED_UUID);
 
-        userService.deleteUser(1L);
+        userService.deleteUser(TestDataUtil.FIXED_UUID);
 
-        verify(userRepository, times(1)).deleteById(1L);
+        verify(userRepository, times(1)).deleteById(TestDataUtil.FIXED_UUID);
     }
 
     @Test
     void testDeleteUser_NotFound() {
-        when(userRepository.existsById(1L)).thenReturn(false);
+        when(userRepository.existsById(TestDataUtil.FIXED_UUID)).thenReturn(false);
 
         assertThrows(EntityNotFoundException.class, () -> {
-            userService.deleteUser(1L);
+            userService.deleteUser(TestDataUtil.FIXED_UUID);
         });
-        verify(userRepository, times(1)).existsById(1L);
+        verify(userRepository, times(1)).existsById(TestDataUtil.FIXED_UUID);
     }
 }

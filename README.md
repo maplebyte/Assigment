@@ -38,7 +38,7 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
     {
       "status": 201,
       "message": "User created successfully",
-      "data": 1
+      "data": "80c53db9-402f-4d78-8dc8-9950faf85153"
     }
     ```
   
@@ -51,7 +51,7 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
       "message": "Users retrieved successfully",
       "data": [
         {
-          "id": 1,
+          "id": "80c53db9-402f-4d78-8dc8-9950faf85153",
           "username": "johndoe",
           "firstName": "John",
           "lastName": "Doe",
@@ -70,7 +70,7 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
       "status": 200,
       "message": "User retrieved successfully",
       "data": {
-        "id": 1,
+        "id": "80c53db9-402f-4d78-8dc8-9950faf85153",
         "username": "johndoe",
         "firstName": "John",
         "lastName": "Doe",
@@ -98,7 +98,7 @@ The application is designed with two database profiles: **PostgreSQL** and **H2*
       "status": 200,
       "message": "User updated successfully",
       "data": {
-        "id": 1,
+        "id": "80c53db9-402f-4d78-8dc8-9950faf85153",
         "username": "johnnydoe",
         "firstName": "Johnny",
         "lastName": "Doe",
